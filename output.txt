@@ -1,0 +1,4 @@
+Hello I am here to write a file to see th output in outputfile.
+Technology helps humans perform tasks more efficiently and accurately. 
+It reduces manual effort and increases productivity. 
+In today’s world, almost every field depends on technology for growth and development.
