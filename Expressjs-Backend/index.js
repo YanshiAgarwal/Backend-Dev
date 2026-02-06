@@ -1,174 +1,122 @@
+/// code (wtthout try catch, fs- promises)
+
+
 const express = require("express");
 const fs = require("fs");
 
 const app = express();
-const port = 8000;
+
+const PORT = 8000;
 
 app.use(express.json());
+const students = [
+  { id: 1, name: "Yanshi", branch: "CSE" },
+  { id: 2, name: "Nishu", branch: "ECE" },
+  { id: 3, name: "Riya", branch: "IT" },
+];
 
-/* ---------------- HOME ---------------- */
 app.get("/", (req, res) => {
-    res.send("Welcome to Home page");
+  res.send("Welcome to home page");
 });
 
 
-/* -------- GET ALL STUDENTS / SEARCH BY NAME -------- */
-app.get("/students/search", (req, res) => {
-    const { name } = req.query;
-
-    fs.readFile("./students.json", "utf-8", (err, data) => {
-        if (err) {
-            return res.status(500).json({ message: "Could not read file" });
-        }
-
-        let students = JSON.parse(data || "[]");
-
-        if (name) {
-            students = students.filter(s => s.name === name);
-        }
-
-        res.json(students);
-    });
-});
-
-/* -------- GET STUDENT BY ID -------- */
-app.get("/students/:id", (req, res) => {
-    const id = parseInt(req.params.id);
-
-    fs.readFile("./students.json", "utf-8", (err, data) => {
-        if (err) {
-            return res.status(500).json({ message: "Could not read file" });
-        }
-
-        const students = JSON.parse(data || "[]");
-        const student = students.find(s => s.id === id);
-
-        if (!student) {
-            return res.status(404).json({ message: "Student not found" });
-        }
-
-        res.json(student);
-    });
-});
-
-/* -------- REGISTER STUDENT -------- */
-app.post("/student/register", (req, res) => {
-    const { name, age, branch } = req.body;
-
-    if (!name || !age || !branch) {
-        return res.status(400).json({ message: "Details missing" });
+app.get("/students", (req, res) => {
+  fs.readFile("./students.json", (err, data) => {
+    if (err) {
+      return res.status(500).send("Error occured");
     }
-
-    fs.readFile("./students.json", "utf-8", (err, data) => {
-        if (err) {
-            return res.status(500).json({ message: "Could not read file" });
-        }
-
-        const students = JSON.parse(data || "[]");
-
-        const existingStudent = readStudentsFromFile();
-
-        //
-        const newStudent = {
-            id: students.length > 0 ? students[students.length - 1].id + 1 : 1,
-            name,
-            age,
-            branch
-        };
-
-        existingStudentstudents.push(newStudent);
-
-        fs.writeFile(
-            "./students.json",
-            JSON.stringify(students, null, 2),
-            (err) => {
-                if (err) {
-                    return res.status(500).json({ message: "Error writing file" });
-                }
-
-                res.status(201).json({
-                    message: "Student registered successfully",
-                    student: newStudent
-                });
-            }
-        );
-    });
+    return res.status(200).send(JSON.parse(data));
+  });
 });
 
-/* -------- UPDATE STUDENT -------- */
+app.get("/students/search", (req, res) => {
+  const branch = req.query.branch;
+
+  if (!branch) {
+    return res.status(400).send("please provide query parameter");
+  }
+  const foundStudents = students.filter((s) => s.branch == branch);
+  return res.json(foundStudents);
+});
+
+app.get("/students/:id", (req, res) => {
+  const id = req.params.id;
+
+  const arrayIndex = students.findIndex((s) => s.id == id);
+  if (arrayIndex == -1) {
+    return res.status(404).send("Student not found");
+  }
+
+  const foundStudent = students[arrayIndex];
+  res.json(foundStudent);
+});
+
+app.post("/students/register", (req, res) => {
+  const { name, branch } = req.body;
+  if (!name || !branch) return res.status(400).send("Details missing");
+
+  //  Read the file first
+  fs.readFile("./students.json", "utf-8", (err, data) => {
+    if (err) return res.status(500).send("Could not read file");
+
+    // . Parse existing data or start with empty array
+    const students = JSON.parse(data || "[]");
+
+    //  Create and push new student
+    const newStudent = {
+      id: students.length > 0 ? students[students.length - 1].id + 1 : 1,
+      name,
+      branch,
+    };
+    students.push(newStudent);
+
+    //  Write the WHOLE array back to the file (Overwriting)
+    fs.writeFile(
+      "./students.json",
+      JSON.stringify(students, null, 2),
+      (err) => {
+        if (err) return res.status(500).send("Error writing to file");
+
+        //  ONLY send response inside the success callback
+        return res
+          .status(201)
+          .json({ message: "Registered!", student: newStudent });
+      },
+    );
+  });
+});
+
 app.put("/students/:id", (req, res) => {
-    const id = parseInt(req.params.id);
-    const { name, age, branch } = req.body;
+  const userId = parseInt(req.params.id);
 
-    fs.readFile("./students.json", "utf-8", (err, data) => {
-        if (err) {
-            return res.status(500).json({ message: "Could not read file" });
-        }
+  const foundIndex = students.findIndex((s) => s.id === userId);
 
-        const students = JSON.parse(data || "[]");
-        const student = students.find(s => s.id === id);
+  if (foundIndex == -1) {
+    return res.status(404).send("Student  not found");
+  }
 
-        if (!student) {
-            return res.status(404).json({ message: "Student not found" });
-        }
+  students[foundIndex] = { ...students[foundIndex], ...req.body };
 
-        if (name) student.name = name;
-        if (age) student.age = age;
-        if (branch) student.branch = branch;
-
-        fs.writeFile(
-            "./students.json",
-            JSON.stringify(students, null, 2),
-            (err) => {
-                if (err) {
-                    return res.status(500).json({ message: "Error updating file" });
-                }
-
-                res.json({
-                    message: "Student updated successfully",
-                    student
-                });
-            }
-        );
-    });
+  const result = { message: "updated sucessfully", students: students };
+  return res.status(200).json(result);
 });
 
-/* -------- DELETE STUDENT -------- */
+
 app.delete("/students/:id", (req, res) => {
-    const id = parseInt(req.params.id);
+  const id = parseInt(req.params.id);
 
-    fs.readFile("./students.json", "utf-8", (err, data) => {
-        if (err) {
-            return res.status(500).json({ message: "Could not read file" });
-        }
+  const foundIndex = students.findIndex((s) => s.id == id);
+  if (foundIndex == -1) {
+    return res.status(400).send("Student not found");
+  }
+  students.splice(foundIndex, 1);
 
-        let students = JSON.parse(data || "[]");
-        const index = students.findIndex(s => s.id === id);
-
-        if (index === -1) {
-            return res.status(404).json({ message: "Student not found" });
-        }
-
-        const deletedStudent = students.splice(index, 1);
-
-        fs.writeFile(
-            "./students.json",
-            JSON.stringify(students, null, 2),
-            (err) => {
-                if (err) {
-                    return res.status(500).json({ message: "Error deleting student" });
-                }
-
-                res.json({
-                    message: "Student deleted successfully",
-                    student: deletedStudent[0]
-                });
-            }
-        );
-    });
+  return res.status(200).json({
+    message: "Student deleted sucessfully",
+    updatedStudents: students,
+  });
 });
 
-/* -------- START SERVER -------- */
-app.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}`);
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
 });
