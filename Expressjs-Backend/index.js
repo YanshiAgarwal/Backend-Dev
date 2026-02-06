@@ -1,31 +1,174 @@
-const express = require('express');
+const express = require("express");
+const fs = require("fs");
+
 const app = express();
 const port = 8000;
 
-const students = [
-    {id:1, name: "Yanshi", age: 20 },
-    {id:2, name: "Aparna", age: 21 },
-    {id:3, name: "Rohit", age: 22 }    
+app.use(express.json());
 
-]
-
-app.get('/', (req, res) => {   
-    res.send('Welcome to Home page');
+/* ---------------- HOME ---------------- */
+app.get("/", (req, res) => {
+    res.send("Welcome to Home page");
 });
 
-app.get("/students",(req,res)=>{
-    res.json(students);
+
+/* -------- GET ALL STUDENTS / SEARCH BY NAME -------- */
+app.get("/students/search", (req, res) => {
+    const { name } = req.query;
+
+    fs.readFile("./students.json", "utf-8", (err, data) => {
+        if (err) {
+            return res.status(500).json({ message: "Could not read file" });
+        }
+
+        let students = JSON.parse(data || "[]");
+
+        if (name) {
+            students = students.filter(s => s.name === name);
+        }
+
+        res.json(students);
+    });
 });
 
-app.get("/students/:id",(req,res)=>{
-    res.send("");
+/* -------- GET STUDENT BY ID -------- */
+app.get("/students/:id", (req, res) => {
+    const id = parseInt(req.params.id);
+
+    fs.readFile("./students.json", "utf-8", (err, data) => {
+        if (err) {
+            return res.status(500).json({ message: "Could not read file" });
+        }
+
+        const students = JSON.parse(data || "[]");
+        const student = students.find(s => s.id === id);
+
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        res.json(student);
+    });
 });
 
-app.get("/students/search",(req,res)=>{
-    const searchquery=req.query;
-    console.log(req.query)
+/* -------- REGISTER STUDENT -------- */
+app.post("/student/register", (req, res) => {
+    const { name, age, branch } = req.body;
+
+    if (!name || !age || !branch) {
+        return res.status(400).json({ message: "Details missing" });
+    }
+
+    fs.readFile("./students.json", "utf-8", (err, data) => {
+        if (err) {
+            return res.status(500).json({ message: "Could not read file" });
+        }
+
+        const students = JSON.parse(data || "[]");
+
+        const existingStudent = readStudentsFromFile();
+
+        //
+        const newStudent = {
+            id: students.length > 0 ? students[students.length - 1].id + 1 : 1,
+            name,
+            age,
+            branch
+        };
+
+        existingStudentstudents.push(newStudent);
+
+        fs.writeFile(
+            "./students.json",
+            JSON.stringify(students, null, 2),
+            (err) => {
+                if (err) {
+                    return res.status(500).json({ message: "Error writing file" });
+                }
+
+                res.status(201).json({
+                    message: "Student registered successfully",
+                    student: newStudent
+                });
+            }
+        );
+    });
 });
 
+/* -------- UPDATE STUDENT -------- */
+app.put("/students/:id", (req, res) => {
+    const id = parseInt(req.params.id);
+    const { name, age, branch } = req.body;
+
+    fs.readFile("./students.json", "utf-8", (err, data) => {
+        if (err) {
+            return res.status(500).json({ message: "Could not read file" });
+        }
+
+        const students = JSON.parse(data || "[]");
+        const student = students.find(s => s.id === id);
+
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        if (name) student.name = name;
+        if (age) student.age = age;
+        if (branch) student.branch = branch;
+
+        fs.writeFile(
+            "./students.json",
+            JSON.stringify(students, null, 2),
+            (err) => {
+                if (err) {
+                    return res.status(500).json({ message: "Error updating file" });
+                }
+
+                res.json({
+                    message: "Student updated successfully",
+                    student
+                });
+            }
+        );
+    });
+});
+
+/* -------- DELETE STUDENT -------- */
+app.delete("/students/:id", (req, res) => {
+    const id = parseInt(req.params.id);
+
+    fs.readFile("./students.json", "utf-8", (err, data) => {
+        if (err) {
+            return res.status(500).json({ message: "Could not read file" });
+        }
+
+        let students = JSON.parse(data || "[]");
+        const index = students.findIndex(s => s.id === id);
+
+        if (index === -1) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        const deletedStudent = students.splice(index, 1);
+
+        fs.writeFile(
+            "./students.json",
+            JSON.stringify(students, null, 2),
+            (err) => {
+                if (err) {
+                    return res.status(500).json({ message: "Error deleting student" });
+                }
+
+                res.json({
+                    message: "Student deleted successfully",
+                    student: deletedStudent[0]
+                });
+            }
+        );
+    });
+});
+
+/* -------- START SERVER -------- */
 app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+    console.log(`Server running on http://localhost:${port}`);
 });
