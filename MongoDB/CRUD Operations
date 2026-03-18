@@ -1,0 +1,44 @@
+#Create a database students collection: students with fields: name, age, course, city, and feesPaid.
+1. Create:
+#Insert at least 5 student records
+#Use different courses and mix of feesPaid (true/false)
+#Ensure at least 2 students have the same name
+
+use StudentsDB
+db.createCollection("students")
+db.students.insertMany([
+  { name: "Aman", age: 21, course: "BCA", city: "Delhi", feesPaid: true },
+  { name: "Arpit", age: 23, course: "BBA", city: "Mumbai", feesPaid: false },
+  { name: "Rohit", age: 19, course: "BCA", city: "Agra", feesPaid: true },
+  { name: "Rohit", age: 24, course: "B.Tech", city: "Noida", feesPaid: false },
+  { name: "Vimal", age: 22, course: "B.Tech", city: "Lucknow", feesPaid: true }
+])
+
+
+2. Read:
+#Retrieve all students
+#Find students with course = "BCA"
+#Find students with age > 20
+#Display only name and course fields
+
+db.students.find({ course: "BCA" })
+db.students.find({ age: { $gt: 20 } })
+db.students.find({}, { name: 1, course: 1, _id: 0 })
+
+
+3. Update:
+#Update city of one student
+#Change course from BCA to MCA
+#Set feesPaid = true for students with age > 22
+
+db.students.updateOne({name:"Aman"},{$set:{city:"Pune"}})
+db.students.updateMany({ course: "BCA" },{ $set: { course: "MCA" } })
+db.students.updateMany({ age: { $gt: 22 } },{ $set: { feesPaid: true } })
+
+
+4. Delete:
+#Delete students with feesPaid = false
+#Delete students with age < 20
+
+db.students.deleteMany({ feesPaid: false })
+db.students.deleteMany({age: { $lt: 20 } })
